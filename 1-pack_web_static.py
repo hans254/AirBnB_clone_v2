@@ -1,30 +1,33 @@
 #!/usr/bin/python3
-from fabric.api import local
+""" Compress before sending """
+from fabric.api import *
 from datetime import datetime
-import os
+
 
 def do_pack():
     """
-    Create a compressed archive from the contents of the web_static folder.
+    Generates a .tgz archive from the contents
+    of the web_static folder
     """
-    # Create the versions folder if it doesn't exist
-    if not os.path.exists("versions"):
-        os.makedirs("versions")
+    try:
+        today = datetime.now().strftime('%Y%m%d%H%M%S')
+        path = "versions/web_static_{:s}.tgz".format(today)
 
-    # Generate the archive filename (web_static_<year><month><day><hour><minute><second>.tgz)
-    now = datetime.utcnow()
-    archive_name = "web_static_{}{}{}{}{}{}.tgz".format(
-        now.year, now.month, now.day, now.hour, now.minute, now.second)
+        msg1 = "Packing web_static to {:s}".format(path)
+        print(msg1)
 
-    # Create the archive command
-    archive_command = "tar -cvzf versions/{} web_static".format(archive_name)
+        with hide('running'):
+            local('mkdir -p ./versions')
 
-    # Run the archive command
-    local_result = local(archive_command)
+        local('tar -cvzf {:s} web_static'.format(path))
 
-    # Check if the command was successful
-    if local_result.failed:
+        with hide('running'):
+            size = local('wc -c < {:s}'.format(path), capture=True)
+
+        msg2 = 'web_static packed: {:s} -> {:s}Bytes'.format(path, size)
+        print(msg2)
+
+        return path
+
+    except:
         return None
-    else:
-        return os.path.join("versions", archive_name)
-
